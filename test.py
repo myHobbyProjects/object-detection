@@ -3,9 +3,7 @@ import os.path
 import sys
 import torch
 import torchvision.transforms as T
-from torch.utils.data import DataLoader
 from model import Yolov1_resnet
-from dataset import VOCDataset
 from PIL import Image
 
 CSV_PATH = "./data/8examples.csv"
@@ -14,13 +12,11 @@ LABEL_DIR = "./data/labels"
 CHKPOINT_PATH = "./chkpoint.pth"
 size_x = 224
 size_y = 224
-S = 7
+S = 19
 B = 2
 C = 20
 BATCH_SZ = 1
 NUM_WORKERS = 1
-learning_rate = 0.0001
-EPOCHS = 100
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 transforms = T.Compose([T.Resize((size_x, size_y)),
@@ -40,7 +36,7 @@ if __name__ == "__main__":
             print("Invalid path - {0}".format(img_path))
             sys.exit()
 
-    display = disp()
+    display = disp(S, B, C)
     model = Yolov1_resnet(S, B, C)
     if not os.path.exists(CHKPOINT_PATH):
         print("Checkpoint file not found. Exiting!")

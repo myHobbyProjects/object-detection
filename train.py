@@ -5,12 +5,11 @@ https://github.com/aladdinpersson/Machine-Learning-Collection.git
 Youtube - https://www.youtube.com/watch?v=n9_XyCGr-MI&list=PLhhyoLH6Ijfw0TpCTVTNk42NN08H6UvNq&index=5
 """
 import os.path
-
+import json
 import torch
 import torchvision.transforms as T
 import torch.optim as optim
 import time
-from tqdm import tqdm
 from torch.utils.data import DataLoader
 from model import Yolov1_resnet
 from dataset import VOCDataset
@@ -22,16 +21,18 @@ CSV_PATH = "./data/train.csv"
 IMG_DIR = "./data/images"
 LABEL_DIR = "./data/labels"
 CHKPOINT_PATH = "./chkpoint.pth"
+LOG_FILE_PATH = "./console.log"
 
 size_x = 224
 size_y = 224
-S = 7
+S = 19
 B = 2
 C = 20
 BATCH_SZ = 32
 NUM_WORKERS = 4
 learning_rate = 0.0001
 EPOCHS = 100
+TRAIN_TEST_SPLIT = 0.95
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 transforms = T.Compose([T.Resize((size_x, size_y)),
@@ -81,10 +82,11 @@ def save_model(CHKPOINT_PATH, model, optimizer, epoch, loss):
 
 
 if __name__ == "__main__":
+    logfile = open(LOG_FILE_PATH, "w")
     prev_epoch_mean_val_loss = float("inf")
     dataset = VOCDataset(CSV_PATH, IMG_DIR, LABEL_DIR, S, B, C, transforms)
 
-    train_split = int(0.9 * len(dataset))
+    train_split = int(TRAIN_TEST_SPLIT * len(dataset))
     test_split = len(dataset) - train_split
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_split, test_split],
                                                                 generator=torch.Generator().manual_seed(42))
@@ -108,7 +110,7 @@ if __name__ == "__main__":
     Yolo_model = Yolov1_resnet(S, B, C)
     Yolo_model.to(DEVICE)
     optimizer = optim.Adam(Yolo_model.parameters(), lr=learning_rate)
-    loss_fn = YoloLoss()
+    loss_fn = YoloLoss(S, B, C)
 
     if os.path.exists(CHKPOINT_PATH):
         Yolo_model, optimizer, epoch, loss = load_model(CHKPOINT_PATH, Yolo_model, optimizer)
@@ -147,23 +149,13 @@ if __name__ == "__main__":
             # save time by not saving on every epoch
             save_model(CHKPOINT_PATH, Yolo_model, optimizer, epoch, loss)
 
-        print("Epoch {0}/{1}\ttrain loss {2:.5}\tval loss {3:.5}\t{4} s"\
-              .format(epoch, EPOCHS, mean_train_loss, mean_val_loss, int(time.time() - start_time)))
+        # print("Epoch {0}/{1}\ttrain loss {2:.5}\tval loss {3:.5}\t{4} s"\
+        #       .format(epoch, EPOCHS, mean_train_loss, mean_val_loss, int(time.time() - start_time)))
 
-    # from display import disp
-    #
-    # display = disp()
-    # val_loader = DataLoader(
-    #     dataset=test_dataset,
-    #     batch_size=BATCH_SZ,
-    #     num_workers=NUM_WORKERS,
-    #     pin_memory=True
-    # )
-    # Yolo_model.eval()
-    # for batch_idx, (x, y) in enumerate(train_loader):
-    #     x, y = x.to(DEVICE), y.to(DEVICE)
-    #     out = Yolo_model(x)
-    #     x = x.detach()
-    #     out = out.detach().reshape((-1, S, S, (C + 5 * B)))
-    #     for i in range(out.shape[0]):
-    #         display.show(x[i:i + 1], out[i:i + 1])
+        logmsg="Epoch {0}/{1} train loss {2:.5} val loss {3:.5} {4} s"\
+            .format(epoch, EPOCHS, mean_train_loss, mean_val_loss, int(time.time() - start_time))
+        print(logmsg)
+        json.dump(logmsg, logfile)
+        logfile.write("\n")
+
+    logfile.close()

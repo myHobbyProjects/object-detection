@@ -1,9 +1,6 @@
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 
-S = 7
-B = 2
-C = 20
 size_x = 224
 size_y = 224
 
@@ -11,10 +8,15 @@ OBJ_PRESENT_CONFIDENCE = 0.5
 # predictions = N * S * S * [class:<0..19>, [P, x, y, w, h], [P, x, y, w, h]......[P, x, y, w, h]]
 # images = N * C * w * h
 class disp():
-    def __init__(self):
-        pass
+    def __init__(self, S, B, C):
+        self.S = S
+        self.B = B
+        self.C = C
 
     def show(self, images, predictions):
+        S = self.S
+        B = self.B
+        C = self.C
         ThisBox = predictions[0]
         # image = images[0].permute(1, 2, 0)
         image = images
